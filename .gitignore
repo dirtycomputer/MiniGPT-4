@@ -1,7 +1,6 @@
-examples/
-examples_v2/
 *.md
 *.png
+*.pdf
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
