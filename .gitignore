@@ -1,4 +1,5 @@
-
+examples/
+examples_v2/
 *.md
 *.png
 
@@ -174,7 +175,6 @@ jobs/logs/
 .ipynb_common
 logs/
 results/
-prompts/
 output/
 ckpt/
 divide_vqa.py
@@ -186,3 +186,4 @@ sbatch_generate*
 eval_data/
 dataset/Evaluation.md
 jupyter_notebook.slurm
+
