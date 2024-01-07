@@ -80,6 +80,7 @@ class RunnerBase:
         """
         A property to get the DDP-wrapped model on the device.
         """
+        logging.info("Current allocated memory(before moving model to device):{}GB".format(torch.cuda.memory_allocated()/1024/1024))
         # move model to device
         if self._model.device != self.device:
             self._model = self._model.to(self.device)
@@ -88,11 +89,11 @@ class RunnerBase:
             if self.use_distributed:
                 if self._wrapped_model is None:
                     self._wrapped_model = DDP(
-                        self._model, device_ids=[self.config.run_cfg.gpu], find_unused_parameters=True
+                        self._model, device_ids=[self.config.run_cfg.gpu]
                     )
             else:
                 self._wrapped_model = self._model
-
+        logging.info("After allocated memory(before moving model to device):{}GB".format(torch.cuda.memory_allocated()/1024/1024))
         return self._wrapped_model
 
     @property
