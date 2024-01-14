@@ -93,7 +93,9 @@ class RunnerBase:
                     )
             else:
                 self._wrapped_model = self._model
-        logging.info("After allocated memory(before moving model to device):{}GB".format(torch.cuda.memory_allocated()/1024/1024))
+        else:
+            self._wrapped_model = self._model
+        logging.info("Current memory(After moving model to device):{}GB".format(torch.cuda.memory_allocated()/1024/1024))
         return self._wrapped_model
 
     @property
@@ -543,7 +545,8 @@ class RunnerBase:
                     collate_fn=collate_fn,
                     drop_last=True if is_train else False,
                 )
-                loader = PrefetchLoader(loader)
+                if self.use_distributed:
+                    loader = PrefetchLoader(loader)
 
                 if is_train:
                     loader = IterLoader(loader, use_distributed=self.use_distributed)

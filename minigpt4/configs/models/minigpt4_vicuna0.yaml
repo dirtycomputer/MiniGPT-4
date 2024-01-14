@@ -7,15 +7,16 @@ model:
   use_grad_checkpoint: False
   vit_precision: "fp16"
   freeze_vit: True
-  freeze_qformer: True
+  # freeze_qformer: True
+  has_qformer: False
 
   # Q-Former
-  num_query_token: 32
+  # num_query_token: 32
 
   # generation configs
   prompt: ""
 
-  llama_model: "/mnt/cache/zhouenshen/13B/"
+  llama_model: "/mnt/petrelfs/share_data/zhouenshen/minigpt/7B/"
 
 preprocess:
     vis_processor:
