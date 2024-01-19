@@ -1,20 +1,21 @@
 model:
   arch: minigpt4
   model_type: pretrain_vicuna0
+  vit_model: fft
 
   max_txt_len: 160
   end_sym: "###"
   prompt_path: "prompts/alignment.txt"
   prompt_template: '###Human: {} ###Assistant: '
-  ckpt: '/mnt/cache/zhouenshen/checkpoint_vicuna/pretrained_minigpt4.pth'
-  lora_r: 8
+  ckpt: ''
+  lora_r: 0
   lora_alpha: 16
   lora_target_modules: ["q_proj","k_proj"]
   lora_dropout: 0.05
 
 datasets:
   cc_sbu_align:
-    batch_size: 1
+    batch_size: 12
     vis_processor:
       train:
         name: "blip2_image_train"

@@ -16,7 +16,8 @@ model:
   # generation configs
   prompt: ""
 
-  llama_model: "/mnt/petrelfs/share_data/zhouenshen/minigpt/7B/"
+  # llama_model: "/mnt/petrelfs/share_data/zhouenshen/checkpoints/vicuna/vicuna-13b-v1.5"
+  llama_model: "/mnt/petrelfs/share_data/zhouenshen/checkpoints/vicuna/vicuna-13b-v1.5"
 
 preprocess:
     vis_processor:
