@@ -3,8 +3,11 @@ import gc
 import os
 import random
 
+
+
 import numpy as np
 import torch
+import torchmetrics
 import torch.backends.cudnn as cudnn
 import json
 from PIL import Image
@@ -71,15 +74,18 @@ CONV_VISION = conv_dict[model_config.model_type]
 
 vis_processor_cfg = cfg.datasets_cfg.cc_sbu_align.vis_processor.train
 vis_processor = registry.get_processor_class(vis_processor_cfg.name).from_config(vis_processor_cfg)
-stop_words_ids = [[835], [2277, 29937]]
-stop_words_ids = [torch.tensor(ids).to(device='cuda:{}'.format(args.gpu_id)) for ids in stop_words_ids]
-stopping_criteria = StoppingCriteriaList([StoppingCriteriaSub(stops=stop_words_ids)])
+# stop_words_ids = [[835], [2277, 29937]]
+# stop_words_ids = [torch.tensor(ids).to(device='cuda:{}'.format(args.gpu_id)) for ids in stop_words_ids]
+# stopping_criteria = StoppingCriteriaList([StoppingCriteriaSub(stops=stop_words_ids)])
+stopping_criteria = None
 
 chat = Chat(model, vis_processor, device='cuda:{}'.format(args.gpu_id), stopping_criteria=stopping_criteria)
 print('Initialization Finished')
 
 def process_batch(image_text_pairs, model):
     results = []
+    labels = []
+    probs = []
     with open("result.csv", mode='w', newline='', encoding='utf-8') as csv_file:
         writer = csv.writer(csv_file)
         writer.writerow(["id","label","llm_message"])
@@ -88,39 +94,66 @@ def process_batch(image_text_pairs, model):
                 label = "良性"
             elif user_message.find("恶性") > -1:
                 label = "恶性"
-            user_message.replace("结节为:良性", "结节为:")
-            user_message.replace("结节为:恶性", "结节为:")
-            user_message += "__? 请只回答该患者结节是恶性还是良性。"
+            else:
+                continue
+            labels.append(1) if label == "恶性" else labels.append(0) 
+            user_message = user_message.replace("结节为良性", "")
+            user_message = user_message.replace("结节为恶性", "")
+            user_message += "请只回答该患者结节是恶性还是良性。"
+            # print(user_message)
             chat_state = CONV_VISION.copy()
             img_list = []
 
             # 处理图像
             llm_message = chat.upload_img(gr_img, chat_state, img_list)
+            assert llm_message, "image not upload"
             chat.encode_img(img_list) 
             # 发送文本
+            
             chat.ask(user_message, chat_state)
 
             # 获取回答
-            llm_message = chat.answer(conv=chat_state,
+            answer_list = chat.answer(conv=chat_state,
                                   img_list=img_list,
-                                  num_beams=1,
-                                  temperature=1,
-                                  max_new_tokens=300,
-                                  max_length=2000)[0]
+                                  num_beams=4,
+                                  temperature=0.3,
+                                  max_new_tokens=100,
+                                  max_length=2000,
+                                  num_return_sequences=1,
+                                  return_dict_in_generate=True,
+                                  output_scores=True,
+                                  is_Test=True
+                                  )
+            # print(answer_list)
+            llm_message = answer_list[0]
+            prob = answer_list[-1]
+            if llm_message.find("恶性") > -1:
+                probs.append(prob)
+            elif llm_message.find("良性") > -1:
+                probs.append(1 - prob)
+            else:
+                probs.pop()
+                continue
             
             writer.writerow([img_id,label,llm_message])
             print([img_id,label,llm_message])
+            results.append([img_id,label,llm_message])
             torch.cuda.empty_cache()
-    return results.append(img_id,label,llm_message)
+    print(probs, labels)
+    auroc = torchmetrics.AUROC(task="binary")
+    print("AUROC:", auroc(torch.tensor(probs), torch.tensor(labels)))
+    return results
 
 # 定义一个函数，根据image_id构建文件路径
 def build_image_path(image_id):
     # 这里需要你根据实际情况来构建文件路径
     # 例如，你可能有一个基础路径和一种将image_id转换为文件名的方法
-    base_path = '/mnt/cache/zhouenshen/HMBM/samples_test/image/'
+    base_path = '/mnt/petrelfs/share_data/zhouenshen/minigpt/HMBM/samples_test/image/'
     filename = image_id + '.jpg'  # 假设文件名直接是image_id加上.jpg后缀
     return base_path + filename
-with open("/mnt/cache/zhouenshen/HMBM/samples_test/filter_cap.json", "r") as json_file: 
+
+
+with open("/mnt/petrelfs/share_data/zhouenshen/minigpt/HMBM/samples_test/filter_cap.json", "r") as json_file: 
     data = json.load(json_file)
 # 遍历data中的annotations部分，提取图像和文本对
 image_text_pairs = [
