@@ -1,4 +1,4 @@
-<Img><ImageHere></Img> Describe this image in detail.
-<Img><ImageHere></Img> Take a look at this image and describe what you notice.
-<Img><ImageHere></Img> Please provide a detailed description of the picture.
-<Img><ImageHere></Img> Could you describe the contents of this image for me?
+<Img><ImageHere></Img> 请结合X光影像和患者情况介绍，给出结节的良恶性判断。
+<Img><ImageHere></Img> 请综合X光影像资料及患者的具体病情描述，进行结节性质的评估，判定其为良性或恶性。
+<Img><ImageHere></Img> 结合患者的X光影像和详细的病情说明，判断该结节是良性的还是恶性的。
+<Img><ImageHere></Img> 请利用X光影像数据和患者的状况介绍来分析，确定这个结节是否是良性或者是恶性的。

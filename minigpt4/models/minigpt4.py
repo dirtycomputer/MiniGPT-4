@@ -39,6 +39,10 @@ class MiniGPT4(MiniGPTBase):
             prompt_template="",
             max_txt_len=32,
             end_sym='\n',
+            lora_r=0,
+            lora_target_modules=["q_proj", "v_proj"],
+            lora_alpha=16,
+            lora_dropout=0.05,
             low_resource=False,  # use 8 bit and put vit in cpu
             device_8bit=0,  # the device of 8bit model should be set when loading and cannot be changed anymore.
     ):
@@ -54,6 +58,10 @@ class MiniGPT4(MiniGPTBase):
             end_sym=end_sym,
             low_resource=low_resource,
             device_8bit=device_8bit,
+            lora_r=lora_r,
+            lora_target_modules=lora_target_modules,
+            lora_alpha=lora_alpha,
+            lora_dropout=lora_dropout
         )
 
         self.has_qformer = has_qformer
@@ -86,7 +94,7 @@ class MiniGPT4(MiniGPTBase):
 
     @classmethod
     def init_Qformer(cls, num_query_token, vision_width, freeze):
-        encoder_config = BertConfig.from_pretrained("bert-base-uncased")
+        encoder_config = BertConfig.from_pretrained("bert-base-uncased",local_files_only=True)
         encoder_config.encoder_width = vision_width
         # insert cross-attention layer every other block
         encoder_config.add_cross_attention = True
@@ -166,6 +174,11 @@ class MiniGPT4(MiniGPTBase):
         max_txt_len = cfg.get("max_txt_len", 32)
         end_sym = cfg.get("end_sym", '\n')
 
+        lora_r = cfg.get("lora_r", 0)
+        lora_target_modules = cfg.get("lora_target_modules",["q_proj", "v_proj"])
+        lora_alpha = cfg.get("lora_alpha", 16)
+        lora_dropout = cfg.get("lora_dropout", 0.05)
+
         model = cls(
             vit_model=vit_model,
             q_former_model=q_former_model,
@@ -184,6 +197,10 @@ class MiniGPT4(MiniGPTBase):
             end_sym=end_sym,
             low_resource=low_resource,
             device_8bit=device_8bit,
+            lora_r=lora_r,
+            lora_alpha=lora_alpha,
+            lora_target_modules = lora_target_modules,
+            lora_dropout = lora_dropout
         )
 
         ckpt_path = cfg.get("ckpt", "")  # load weights of MiniGPT-4
@@ -191,5 +208,5 @@ class MiniGPT4(MiniGPTBase):
             print("Load MiniGPT-4 Checkpoint: {}".format(ckpt_path))
             ckpt = torch.load(ckpt_path, map_location="cpu")
             msg = model.load_state_dict(ckpt['model'], strict=False)
-
+        logging.info("{}".format(model))
         return model

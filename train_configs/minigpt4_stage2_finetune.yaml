@@ -1,13 +1,17 @@
 model:
   arch: minigpt4
   model_type: pretrain_vicuna0
+  vit_model: fft
 
   max_txt_len: 160
   end_sym: "###"
   prompt_path: "prompts/alignment.txt"
   prompt_template: '###Human: {} ###Assistant: '
-  ckpt: '/path/to/stage1/checkpoint/'
-
+  ckpt: ''
+  lora_r: 0
+  lora_alpha: 16
+  lora_target_modules: ["q_proj","k_proj"]
+  lora_dropout: 0.05
 
 datasets:
   cc_sbu_align:
@@ -29,7 +33,7 @@ run:
   warmup_lr: 1e-6
 
   weight_decay: 0.05
-  max_epoch: 5
+  max_epoch: 15
   iters_per_epoch: 200
   num_workers: 4
   warmup_steps: 200
@@ -48,5 +52,5 @@ run:
   dist_url: "env://"
   distributed: True
 
-  wandb_log: True
+  wandb_log: False
   job_name: minigpt4_finetune

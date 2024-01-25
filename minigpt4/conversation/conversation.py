@@ -156,7 +156,8 @@ class Chat:
             conv.append_message(conv.roles[0], text)
 
     def answer_prepare(self, conv, img_list, max_new_tokens=300, num_beams=1, min_length=1, top_p=0.9,
-                       repetition_penalty=1.05, length_penalty=1, temperature=1.0, max_length=2000):
+                       repetition_penalty=1.05, length_penalty=1, temperature=1.0, max_length=2000, 
+                       return_dict_in_generate=False, num_return_sequences=1, output_scores=False):
         conv.append_message(conv.roles[1], None)
         prompt = conv.get_prompt()
         embs = self.model.get_context_emb(prompt, img_list)
@@ -179,18 +180,26 @@ class Chat:
             repetition_penalty=repetition_penalty,
             length_penalty=length_penalty,
             temperature=float(temperature),
+            num_return_sequences=num_return_sequences,
+            return_dict_in_generate=return_dict_in_generate,
+            output_scores=output_scores,
         )
+        print(generation_kwargs)
         return generation_kwargs
 
-    def answer(self, conv, img_list, **kargs):
+    def answer(self, conv, img_list, is_Test=False, **kargs):
         generation_dict = self.answer_prepare(conv, img_list, **kargs)
-        output_token = self.model_generate(**generation_dict)[0]
+        outputs = self.model_generate(**generation_dict)
+
+        output_token = outputs.sequences[0]
         output_text = self.model.llama_tokenizer.decode(output_token, skip_special_tokens=True)
 
         output_text = output_text.split('###')[0]  # remove the stop sign '###'
         output_text = output_text.split('Assistant:')[-1].strip()
 
         conv.messages[-1][1] = output_text
+        if is_Test:
+            return output_text, output_token.cpu().numpy(), torch.exp(outputs.sequences_scores).item()
         return output_text, output_token.cpu().numpy()
 
     def stream_answer(self, conv, img_list, **kargs):

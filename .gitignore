@@ -1,6 +1,8 @@
 *.md
 *.png
 *.pdf
+*.pth
+*.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -170,7 +172,6 @@ jobs/logs/
 *ipynb
 .history/
 *.json
-*.sh
 .ipynb_common
 logs/
 results/

@@ -16,12 +16,14 @@ import torch.nn as nn
 from transformers import LlamaTokenizer
 from peft import (
     LoraConfig,
+    LoftQConfig,
     get_peft_model,
-    prepare_model_for_int8_training,
+    prepare_model_for_kbit_training
 )
 
 from minigpt4.common.dist_utils import download_cached_file
 from minigpt4.common.utils import get_abs_path, is_url
+from minigpt4.models.fft import fixed_fft
 from minigpt4.models.eva_vit import create_eva_vit_g
 from minigpt4.models.modeling_llama import LlamaForCausalLM
 
@@ -144,13 +146,15 @@ class BaseModel(nn.Module):
     ):
         logging.info('Loading VIT')
 
-        assert model_name == "eva_clip_g", "vit model must be eva_clip_g for current version of MiniGPT-4"
-        if not freeze:
-            precision = "fp32"  # fp16 is not for training
+        if model_name == "eva_clip_g":
+            if not freeze:
+                precision = "fp32"  # fp16 is not for training
+            visual_encoder = create_eva_vit_g(
+                img_size, drop_path_rate, use_grad_checkpoint, precision
+            )
 
-        visual_encoder = create_eva_vit_g(
-            img_size, drop_path_rate, use_grad_checkpoint, precision
-        )
+        elif model_name == "fft":
+            visual_encoder = fixed_fft(img_size=img_size)
 
         ln_vision = LayerNorm(visual_encoder.num_features)
 
@@ -170,10 +174,11 @@ class BaseModel(nn.Module):
 
     def init_llm(cls, llama_model_path, low_resource=False, low_res_device=0, lora_r=0,
                  lora_target_modules=["q_proj","v_proj"], **lora_kargs):
-        logging.info('Loading LLAMA')
-        llama_tokenizer = LlamaTokenizer.from_pretrained(llama_model_path, use_fast=False)
+        logging.info('Loading LLAMA tokenizer')
+        llama_tokenizer = LlamaTokenizer.from_pretrained(llama_model_path)
         llama_tokenizer.pad_token = "$$"
-
+        logging.info('Loading LLAMA tokenizer done')
+        logging.info('Loading LLAMA weight')
         if low_resource:
             llama_model = LlamaForCausalLM.from_pretrained(
                 llama_model_path,
@@ -186,11 +191,14 @@ class BaseModel(nn.Module):
                 llama_model_path,
                 torch_dtype=torch.float16,
             )
-
+        logging.info('Loading LLAMA weight done')
+        
         if lora_r > 0:
-            llama_model = prepare_model_for_int8_training(llama_model)
+            logging.info('Using Lora lora_r:{}'.format(lora_r))
+            llama_model = prepare_model_for_kbit_training(llama_model)
             loraconfig = LoraConfig(
                 r=lora_r,
+                loftq_config = LoftQConfig(loftq_bits=4),
                 bias="none",
                 task_type="CAUSAL_LM",
                 target_modules=lora_target_modules,

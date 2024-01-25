@@ -7,15 +7,17 @@ model:
   use_grad_checkpoint: False
   vit_precision: "fp16"
   freeze_vit: True
-  freeze_qformer: True
+  # freeze_qformer: True
+  has_qformer: False
 
   # Q-Former
-  num_query_token: 32
+  # num_query_token: 32
 
   # generation configs
   prompt: ""
 
-  llama_model: "please set this value to the path of vicuna model"
+  # llama_model: "/mnt/petrelfs/share_data/zhouenshen/checkpoints/vicuna/vicuna-13b-v1.5"
+  llama_model: "/mnt/petrelfs/share_data/zhouenshen/checkpoints/vicuna/vicuna-13b-v1.5"
 
 preprocess:
     vis_processor:
